@@ -238,6 +238,7 @@ class player(pygame.sprite.Sprite):
         self.isautopilot = False
         self.shot = False
         self.won = False
+        self.upgrade = False
 
     def checkbounds(self):
         if self.rect.left < 0:
@@ -265,6 +266,9 @@ class player(pygame.sprite.Sprite):
         (x, y) = self.rect.center
         self.shot = bullet(x - 14, y, (0, 255, 0), 1)
         self.shot = bullet(x + 14, y, (0, 255, 0), 1)
+        if self.upgrade == True:
+            self.shot = bullet(x - 8, y, (0, 255, 0), 1)
+            self.shot = bullet(x + 8, y, (0, 255, 0), 1)
 
     def autopilot(self):
         if self.rect.centerx < width / 2:
@@ -758,6 +762,56 @@ class healthpack(pygame.sprite.Sprite):
         self.movement[1] = 5
 
 
+class upgrade(pygame.sprite.Sprite):
+
+    def __init__(
+        self,
+        x,
+        y,
+        health,
+        ):
+
+        pygame.sprite.Sprite.__init__(self, self.containers)
+        self.health = health
+        (self.image, self.rect) = load_image('upgrade.png', 50, 50,
+                -1)
+        self.rect.left = x
+        self.rect.top = y
+        self.movement = [3, 0]
+        self.maxleft = self.rect.left - 20
+        self.maxright = self.rect.right + 20
+
+    def checkbounds(self):
+        if self.rect.left < 0:
+            self.rect.left = 0
+            self.movement[0] = 0
+            self.speed = 0
+        if self.rect.right > width:
+            self.rect.right = width
+            self.movement[0] = 0
+            self.speed = 0
+
+    def update(self):
+        self.checkbounds()
+        self.autopilot()
+        self.rect = self.rect.move(self.movement)
+
+        if self.health <= 0 or self.rect.top > height:
+            self.kill()
+
+    def drawplayer(self):
+        screen.blit(self.image, self.rect)
+
+    def autopilot(self):
+        if self.rect.right > self.maxright:
+            self.movement[0] = -3
+        elif self.rect.left < self.maxleft:
+            self.movement[0] = 3
+
+        self.movement[1] = 5
+
+
+
 class bullet(pygame.sprite.Sprite):
 
     def __init__(
@@ -878,6 +932,7 @@ def main():
     saucers = pygame.sprite.Group()
     station = pygame.sprite.Group()
     healthpacks = pygame.sprite.Group()
+    upgrades = pygame.sprite.Group()
 
     bullet.containers = bullets
     enemybullet.containers = enemybullets
@@ -887,6 +942,7 @@ def main():
     enemysaucer.containers = saucers
     enemystation.containers = station
     healthpack.containers = healthpacks
+    upgrade.containers = upgrades
 
     user = player()
     pygame.display.set_caption('PyGalaxian')
@@ -979,6 +1035,10 @@ def main():
                 and len(healthpacks) < 1:
                 healthpack(random.randrange(0, width - 50), 0, 10)
 
+            if wavecounter % 200 == 199 and random.randrange(0, 2) == 1 \
+               and len(upgrades) < 1:
+                upgrade(random.randrange(0, width - 50), 0, 10)
+
             if random.randrange(0, 8) == 1 and len(enemies) < 10 \
                 and (wave == 0 or wave == 5 or wave == 6 or wave == 9):
                 enemy(random.randrange(0, 4))
@@ -1057,31 +1117,41 @@ def main():
             for firedbullet in pygame.sprite.spritecollide(user,
                     enemybullets, 1):
                 user.health -= 1
+                user.upgrade = False
 
             for enemycollided in enemies:
                 if pygame.sprite.collide_mask(user, enemycollided):
                     user.health -= 2
+                    user.upgrade = False
                     enemycollided.health -= enemycollided.health
 
             for dronecollided in drones:
                 if pygame.sprite.collide_mask(user, dronecollided):
                     user.health -= 10
+                    user.upgrade = False
                     dronecollided.health -= dronecollided.health
 
             for saucercollided in saucers:
                 if pygame.sprite.collide_mask(user, saucercollided):
                     user.health -= 4
+                    user.upgrade = False
                     saucercollided.health -= saucercollided.health
 
             for stationcollided in station:
                 if pygame.sprite.collide_mask(user, stationcollided):
                     user.health -= 50
+                    user.upgrade = False
                     stationcollided.health -= stationcollided.health
 
             for health_pack in healthpacks:
                 if pygame.sprite.collide_mask(user, health_pack):
                     user.health += health_pack.health
                     health_pack.health -= health_pack.health
+
+            for upgrade_pack in upgrades:
+                if pygame.sprite.collide_mask(user, upgrade_pack):
+                    user.upgrade = True
+                    upgrade_pack.health -= upgrade_pack.health
 
             if user.health <= 0:
                 gameOverScreen = True
@@ -1112,6 +1182,7 @@ def main():
             saucers.update()
             station.update()
             healthpacks.update()
+            upgrades.update()
 
             bullets.draw(screen)
             enemybullets.draw(screen)
@@ -1121,6 +1192,7 @@ def main():
             saucers.draw(screen)
             station.draw(screen)
             healthpacks.draw(screen)
+            upgrades.draw(screen)
 
             wave = storyboard(wavecounter)
 
@@ -1207,20 +1279,24 @@ def main():
             for firedbullet in pygame.sprite.spritecollide(user,
                     enemybullets, 1):
                 user.health -= 1
+                user.upgrade = False
 
             for enemycollided in enemies:
                 if pygame.sprite.collide_mask(user, enemycollided):
                     user.health -= 2
+                    user.upgrade = False
                     enemycollided.health -= enemycollided.health
 
             for dronecollided in drones:
                 if pygame.sprite.collide_mask(user, dronecollided):
                     user.health -= 10
+                    user.upgrade = False
                     dronecollided.health -= dronecollided.health
 
             for saucercollided in saucers:
                 if pygame.sprite.collide_mask(user, saucercollided):
                     user.health -= 4
+                    user.upgrade = False
                     saucercollided.health -= saucercollided.health
 
             if user.health <= 0:
